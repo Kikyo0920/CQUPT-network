@@ -166,4 +166,165 @@
 >
 >    ```
 >    安装完后到网络→负载均衡界面，把接口、成员、策略、规则里面的配置全部删掉
->    在接口里面新增vwan1，名字要和在网络→接口添加的接
+>    在接口里面新增vwan1，名字要和在网络→接口添加的接口相同，否则无法匹配接口
+>    勾选启用，填入跟踪的IP，接口会ping这个IP检查自己是否在线。其他配置保持默认就行
+>    添加两个接口，如图
+>    ```
+>
+>    
+>
+>    ![image-20240912114201960](C:\Users\sjh10\AppData\Roaming\Typora\typora-user-images\image-20240912114201960.png)
+
+> 注意，跃点数是不是数值，显示“-”是接口的跃点数没指定，回到网络→接口重新指定，或者填的接口名称不对应，还有不同接口间的跃点数是否不同, 路由优先发往跃点值较小的接口。跃点值相同的接口，按权重走路由。如果你用的是同一个号，网速相同，推荐相同跃点数，权重1:1，其他请自行确定
+>
+> ![image-20240912114539605](C:\Users\sjh10\AppData\Roaming\Typora\typora-user-images\image-20240912114539605.png)
+
+> 如上图添加三个策略，注意分配的成员这一项
+>
+> ![image-20240912114701912](C:\Users\sjh10\AppData\Roaming\Typora\typora-user-images\image-20240912114701912.png)
+
+> 按照上图添加规则，注意，`loginnet` 的目标地址为校园网的登录地址
+>
+>  登陆之后检查所有接口是否都在线，状态→负载均衡，此时将连接的那一个接口断开，在接口中连接未在线的接口
+>
+> 可以使用如下命令
+>
+> ```bash
+> ifdown vwan0 #断开VWAN2  不要复制代码，请确认自己哪个接口连接了，哪个没连接
+> ifup vwan1 #连接VWAN1
+> ```
+>
+> 连接口换一台设备登录校园网（如果是限制一台手机就换电脑，限制几台设备登录换另一台设备，保证另一个端口不会被挤下线）
+>
+> 重新连接两个端口，测速发现，此时网速已经翻倍
+
+------
+## 其他问题
+
+1. 我的学校每天晚上会断网第二天怎么重新连接？
+
+	你可以使用计划任务，代码格式为
+
+	```bash
+	* * * * * 需要执行的命令
+	- - - - -
+	| | | | |
+	| | | | ----- 一星期中的第几天 (0 - 6) (其中0表示星期日)
+	| | | ------- 月份 (1 - 12)
+	| | --------- 一个月中的第几天 (1 - 31)
+	| ----------- 一天中的第几小时 (0 - 23)
+	------------- 一小时中的第几分钟 (0 - 59)
+	"*"代表可能的值,","用于分开列表范围，"-"表示整数范围，"/"表示间隔频率
+	#举例如下
+	18 6 * * * ifdown vwan1 #每天6点18断开VWAN1
+	18 6 * * * ifdown vwan2 #每天6点18断开VWAN2
+	20 6 * * *  ifup vwan1 #每天6点20连接VWAN1
+	20 6 * * *  ifup vwan2 #每天6点20连接VWAN2
+	25 6 * * * wifi down #每天6点2断开WIFI
+	25 6 * * * wifi up #每天6点25连接WIFI
+	0-23/2 #每两小时执行一次
+	```
+
+	<>
+
+
+2. 我的校园网有时候会断连，怎么重新连接？
+
+​      定时ping两个外网地址，连续N次无法ping通，则重启网卡
+
+​    ping 脚本位置` /root/ping/ping.sh` 
+
+   代码如下
+
+```bash
+#!/bin/sh
+
+#ping 的总次数
+PING_SUM=3
+
+#ping 的间隔时间，单位秒
+SLEEP_SEC=60
+
+#连续重启网卡 REBOOT_CNT 次网络都没有恢复正常，重启路由器
+#时间= (SLEEP_SEC * PING_SUM + 20) * REBOOT_CNT
+REBOOT_CNT=30
+
+LOG_PATH="/root/ping/log.txt"
+
+cnt=0
+reboot_cnt=0
+while :
+do
+    ping -c 1 -W 1 114.114.114.114 > /dev/null
+    ret=$?
+    
+    ping -c 1 -W 1 223.6.6.6 > /dev/null
+    ret2=$?
+    
+    if [[ $ret -eq 0 || $ret2 -eq 0 ]]
+    then
+        echo 'Network OK!'
+        cnt=0
+        reboot_cnt=0
+    else
+        cnt=`expr $cnt + 1`
+        echo -n `date '+%Y-%m-%d %H:%M:%S'` >> $LOG_PATH
+        printf '-> [%d/%d] Network maybe disconnected,checking again after %d seconds!\r\n' $cnt $PING_SUM $SLEEP_SEC >> $LOG_PATH
+        printf '-> [%d/%d] Network maybe disconnected,checking again after %d seconds!\r\n' $cnt $PING_SUM $SLEEP_SEC 
+        
+        if [ $cnt == $PING_SUM ]
+        then
+            echo 'ifup wan!!!' >> $LOG_PATH
+            echo 'ifup wan!!!'
+            
+            ifdown vwan1
+            ifdown vwan2
+            ifdown wan
+            sleep 1
+            ifup wan
+            ifup vwan1
+            ifup vwan2
+            
+            cnt=0
+            #重连后，等待20秒再进行ping检测
+            sleep 20
+            
+            
+            #网卡重启超过指定次数还没恢复正常，重启路由器
+            reboot_cnt=`expr $reboot_cnt + 1`
+            if [ $reboot_cnt == $REBOOT_CNT ]
+            then
+                echo -n `date '+%Y-%m-%d %H:%M:%S'` >> $LOG_PATH
+                echo '-> =============== reboot!' >> $LOG_PATH
+                echo '-> =============== reboot!'
+                
+                sshpass -p password ssh -p 22 root@192.168.1.1 'reboot'  
+            fi
+        fi
+    fi
+    
+    sleep $SLEEP_SEC
+done
+
+
+```
+
+保存脚本，chmod+ xxx.sh给予脚本权限
+
+
+计划任务中新建执行脚本
+
+计划任务中新建执行脚本
+
+3. 有没有能自动登录校园网的脚本？
+
+	不同学校校园网登录检测方式不同，建议在GitHub上寻找自己学校的登录脚本
+
+	> 资源打包地址:  链接：https://pan.baidu.com/s/1oEnotgfo2XKaQi_m7eJa2A?pwd=eh68 
+	> 提取码：eh68
+	>
+	> 密码：password@kikyo
+	
+	**笔者水平有限，如有错误还望指正。**
+
+​	
