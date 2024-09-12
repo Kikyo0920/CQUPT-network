@@ -1,2 +1,1 @@
-# powerget
-Something that help network usage more convenient.
+# 校园网单线多拨
