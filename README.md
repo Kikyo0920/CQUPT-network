@@ -40,7 +40,7 @@
 >
 > a. 固件降级
 >
-> 1. 下载完成后进入后台 192.168.31.1->常用设置->系统状态->手动升级
+> 1. 进入后台 192.168.31.1->常用设置->系统状态->手动升级
 > 2. 加载固件，可以保留数据->开始升级
 >
 > b. 直接刷入breed
@@ -63,7 +63,7 @@
 >
 >3. 浏览器地址栏输入下面的代码（记得替换stok），回车
 > ```http
->http://192.168.31.1/cgi-bin/luci/;stok=stok值/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=%0Acd%20%2Ftmp%0Acurl%20-o%20B%20-O%20https%3A%2F%2Fbreed.hackpascal.net%2Fbreed-mt7621-xiaomi-r3g.bin%20-k%0A%5B%20-z%20%22%24(sha256sum%20B%20%7C%20grep%20242d42eb5f5aaa67ddc9c1baf1acdf58d289e3f792adfdd77b589b9dc71eff85)%22%20%5D%20%7C%7C%20mtd%20-r%20write%20B%20Bootloader%0A ```
+>http://192.168.31.1/cgi-bin/luci/;stok=stok值/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=%0Acd%20%2Ftmp%0Acurl%20-o%20B%20-O%20https%3A%2F%2Fbreed.hackpascal.net%2Fbreed-mt7621-xiaomi-r3g.bin%20-k%0A%5B%20-z%20%22%24(sha256sum%20B%20%7C%20grep%20242d42eb5f5aaa67ddc9c1baf1acdf58d289e3f792adfdd77b589b9dc71eff85)%22%20%5D%20%7C%7C%20mtd%20-r%20write%20B%20Bootloader%0A
 > ```
 >-   不出意外的话，你的路由器会在60秒内重启，system指示灯变为黄色，最终变蓝成功进入系统，代表刷入breed成功
 >-   接下来，将路由器断电，按住reset，接通电源，等待10秒，路由器蓝色灯光闪烁，代表进入breed，用网线将路由器和电脑连接，浏览器地址栏输入`192.168.1.1`进入breed控制台 
@@ -74,7 +74,7 @@
 >
 > a.固件降级
 >
-> -   下载完成后进入后台 `192.168.31.1`->常用设置->系统状态->手动升级
+> -   进入后台 `192.168.31.1`->常用设置->系统状态->手动升级
 > -   加载固件，可以保留数据->开始升级
 >
 > b.获取stok
@@ -92,9 +92,10 @@
 > 
 >找到路由器背面的SN码
 > 
-> -   访问`https://miwifi.dev/ssh`，输入SN码可获取root密码
+> -   访问`https://miwifi.dev/ssh`，输入SN码（整个SN码包括“/”前后的所有内容）可获取root密码
 > -   打开Xterminal，新建服务器，22端口，账户为root，密码为刚刚获取的密码
 > -   将``breed-mt7621-xiaomi-r3g.bin``文件上传到根目录下的tmp文件夹（注意是根目录下的，不是tmp文件夹下的tmp文件夹）
+> -    推荐使用WINSCP软件
 > - 打开终端执行 
 > 
 >```BASH
@@ -121,7 +122,7 @@
 >
 >   提示输入密码 默认密码为 `password` （输入密码过程中看不到密码，请输入后按回车即可），即可进入控制台
 >
-> > [!TIP]
+>>[!TIP]
 > >
 > > 警告：DE版本的固件无法自动开启WiFi，第一次刷入固件开机后，有线连接电脑，进入`192.168.1.1`，路由器后台，密码为 `password`
 > >
