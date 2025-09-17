@@ -49,7 +49,7 @@
 
 ------
 
-> (1). 直接刷入法**（本地http服务）**
+> (1). 直接刷入法 **（本地http服务）**
 >
 > a. 固件降级
 >
@@ -64,17 +64,24 @@
 >
 > - 电脑浏览器（推荐）进入 `192.168.31.1` ，复制自己的stok，即网页地址栏出现的 `192.168.31.1/……/stok=stok值`（这部分）
 > - 运行HFS，将breed固件`breed-mt7621-xiaomi-r3g.bin`拖入HFS，记录HFS导航栏的IP地址*（一般为192.168.31.XX）*。
-> - 用复制的stok替换下列代码中的stok值并修改代码中的IP地址<u>*（curl命令这一行）*</u>
+> - 修改代码中的IP地址<u>*（curl命令这一行）*</u>
 >
-> ```http
-> http://192.168.31.1/cgi-bin/luci/;stok=stok值/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=
-> cd /tmp
-> curl -o B -O http://192.168.31.XX/breed-mt7621-xiaomi-r3g.bin -k -g
-> [ -z "$(sha256sum B | grep 242d42eb5f5aaa67ddc9c1baf1acdf58d289e3f792adfdd77b589b9dc71eff85)" ] || mtd -r write B Bootloader
+> ```
 > 
+> cd /tmp
+> curl -o B -O https://192.168.31.xx/breed-mt7621-xiaomi-r3g.bin -k -g
+> [ -z "$(sha256sum B | grep 242d42eb5f5aaa67ddc9c1baf1acdf58d289e3f792adfdd77b589b9dc71eff85)" ] || mtd -r write B Bootloader
 > ```
 >
-> - 将命令进行url Encode，推荐在线url Encode网址：[URL ENCODE](https://www.tbfl.store/dev/urlcode.html)
+> - 将修改后的代码复制 **（注意完整复制，cd前面还有一个换行符）** 进行url encode,推荐在线url Encode网址：[URL ENCODE](https://www.tbfl.store/dev/urlcode.html)
+>
+> - 将url encode后的代码拼接再下面的代码后面并修改stok值
+>
+>   ```
+>   http://192.168.31.1/cgi-bin/luci/;stok=stok值/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=
+>   ```
+>
+>   
 
 >
 >3. 浏览器地址栏输入刚才的处理过的代码，回车。
@@ -92,7 +99,7 @@
 >
 > b.获取ssh权限
 >
-> - [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher)中下载patch工具*<u>（如网络不佳可下载打包资源，详见文章末）</u>*下载完成后解压并运行 *run.bat*
+> - [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher)中下载patch工具 *<u>（如网络不佳可下载打包资源，详见文章末）</u>*下载完成后解压并运行  *run.bat*
 >
 > - 如果你未更改过网关地址，输入2回车并等待输入web登录密码
 >
