@@ -3,10 +3,17 @@
 > **作者：kikyo**
 >
 > ***Email：sjh10075@outlook.com*** 
+>
+> Updata：2025-9-17
 
   笔者所在CQUPT校园网每台设备限速50Mbps，每个账号限制两台设备同时在线，但是在2024年这个网速还是十分影响体验的，同时由于我有三台设备（手机、电脑、平板），需要同时上网也不希望频繁切换登录设备，遂购入一台红米AC2100，刷入openwrt固件，开启单线多拨，多线程网速提升至100Mbps，基本满足上网需求。
-  
+
 > **注：实际网速=虚拟网卡登录设备数目*50Mbps≤光猫上限**
+
+> [!TIP]
+>
+> 更新日志：原有的刷入breed的方法已经失效，现采用本地http服务的方法实现刷入,原有的开启ssh的方法现已有更简单的xmir-patcher实现。
+
 
 ## 教程
 
@@ -22,7 +29,11 @@
 >  >
 >  > 4. Xterminal 软件
 >  >
->  > 5. 一双灵巧的手和聪慧的大脑
+>  > 5. WINSCP 软件
+>  >
+>  > 6. 一双灵巧的手和聪慧的大脑
+>  >
+>  > 7. 勇敢直面问题的勇气
 >
 > **PS：本教程用到的软件、固件包等会在文章末分享**
 >
@@ -32,13 +43,13 @@
 
 ## 1. 刷入breed
 
-> Breed【不死】，是一个由国内个人hackpascal开发的Bootloader引导程序，成功刷入breed后，就可以借助它刷入第三方路由器固件
+> Breed【不死】，是一个由国内个人*hackpascal*开发的*Bootloader*引导程序，成功刷入breed后，就可以借助它刷入第三方路由器固件
 >
 > <u>**刷入breed的方法较多，本文介绍两个相对简单的方法，其他方法请自行查阅相关教程**</u>
 
 ------
 
-> (1). 直接刷入法
+> (1). 直接刷入法**（本地http服务）**
 >
 > a. 固件降级
 >
@@ -49,24 +60,24 @@
 >
 > > [!TIP]
 > >
-> >   首先需要确保路由器有网络，有网络才能自动下载breed。网络可以连接网线，并使用手机连接路由器WiFi并登录，如果在学校没有网线的话，
-> > 可以手机开热点，然后打开路由器的无线桥连（中继）功能，让路由器连接到自己的手机热点，就可以使路由器有网络。
+> > 电脑需要有线连接到路由器的LAN口
 >
 > - 电脑浏览器（推荐）进入 `192.168.31.1` ，复制自己的stok，即网页地址栏出现的 `192.168.31.1/……/stok=stok值`（这部分）
-> - 用复制的stok替换下列代码中的stok值
+> - 运行HFS，将breed固件`breed-mt7621-xiaomi-r3g.bin`拖入HFS，记录HFS导航栏的IP地址*（一般为192.168.31.XX）*。
+> - 用复制的stok替换下列代码中的stok值并修改代码中的IP地址<u>*（curl命令这一行）*</u>
 >
 > ```http
-> http://192.168.31.1/cgi-bin/luci/;stok=stok值/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=%0A%5B%20-z%20%22%24(dmesg%20%7C%20grep%20ESMT)%22%20%5D%20%26%26%20B%3D%22Toshiba%22%20%7C%7C%20B%3D%22ESMT%22%0Auci%20set%20wireless.%24(uci%20show%20wireless%20%7C%20awk%20F%20'.'%20'%2Fwl1%2F%20%7Bprint%20%242%7D').ssid%3D%22%24B%20%24(dmesg%20%7C%20awk%20'%2FBad%2F%20%7Bprint%20%245%7D')%22%0A%2Fetc%2Finit.d%2Fnetwork%20restart%0A
+> http://192.168.31.1/cgi-bin/luci/;stok=stok值/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=
+> cd /tmp
+> curl -o B -O http://192.168.31.XX/breed-mt7621-xiaomi-r3g.bin -k -g
+> [ -z "$(sha256sum B | grep 242d42eb5f5aaa67ddc9c1baf1acdf58d289e3f792adfdd77b589b9dc71eff85)" ] || mtd -r write B Bootloader
+> 
 > ```
 >
-> - 回车，浏览器会显示 `{"CODE:0"}` 如果显示其他代码，可能是你还没降级固件或者`stok` 过期，也可以恢复出厂设置尝试
-> - 此代码是用来检查NAND坏块，运行代码后，你路由器的2.4g WiFi名称会改名成：比如 `“ESMT”，“Toshiba”，“Toshiba 90 768”`。 90和768是坏块。 如果ESMT或者Toshiba后面没数字，代表没有坏块。坏块基本不会影响下面的操作，但是存在部分设备异常的情况，如存在坏块且无法刷入breed，考虑更换路由器尝试。
+> - 将命令进行url Encode，推荐在线url Encode网址：[URL ENCODE](https://www.tbfl.store/dev/urlcode.html)
 
 >
->3. 浏览器地址栏输入下面的代码（记得替换stok），回车
-> ```http
->http://192.168.31.1/cgi-bin/luci/;stok=stok值/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=%0Acd%20%2Ftmp%0Acurl%20-o%20B%20-O%20https%3A%2F%2Fbreed.hackpascal.net%2Fbreed-mt7621-xiaomi-r3g.bin%20-k%0A%5B%20-z%20%22%24(sha256sum%20B%20%7C%20grep%20242d42eb5f5aaa67ddc9c1baf1acdf58d289e3f792adfdd77b589b9dc71eff85)%22%20%5D%20%7C%7C%20mtd%20-r%20write%20B%20Bootloader%0A
-> ```
+>3. 浏览器地址栏输入刚才的处理过的代码，回车。
 >-   不出意外的话，你的路由器会在60秒内重启，system指示灯变为黄色，最终变蓝成功进入系统，代表刷入breed成功
 >-   接下来，将路由器断电，按住reset，接通电源，等待10秒，路由器蓝色灯光闪烁，代表进入breed，用网线将路由器和电脑连接，浏览器地址栏输入`192.168.1.1`进入breed控制台 
 
@@ -79,32 +90,30 @@
 > -   进入后台 `192.168.31.1`->常用设置->系统状态->手动升级
 > -   加载固件，可以保留数据->开始升级
 >
-> b.获取stok
+> b.获取ssh权限
 >
->   电脑浏览器（推荐）进入 `192.168.31.1` ，复制自己的stok，即网页地址栏出现的 `192.168.31.1/……/stok=stok值`（这部分）
+> - [xmir-patcher](https://github.com/openwrt-xiaomi/xmir-patcher)中下载patch工具*<u>（如网络不佳可下载打包资源，详见文章末）</u>*下载完成后解压并运行 *run.bat*
 >
-> ```http
-> http://192.168.31.1/cgi-bin/luci/;stok=<STOK值>/api/misystem/set_config_iotdev?bssid=Xiaomi&user_id=longdike&ssid=-h%3B%20nvram%20set%20ssh_en%3D1%3B%20nvram%20commit%3B%20sed%20-i%20's%2Fchannel%3D.*%2Fchannel%3D%5C%22debug%5C%22%2Fg'%20%2Fetc%2Finit.d%2Fdropbear%3B%20%2Fetc%2Finit.d%2Fdropbear%20start%3B
-> ```
+> - 如果你未更改过网关地址，输入2回车并等待输入web登录密码
 >
-> -   浏览器输入上面的代码（记得替换stok），回车，浏览器会显示`{"CODE:0"}`,代表成功
-> -   如果返回其他代码，请检查你的stok和网址是否正确，等待60秒路由器重启，已开启ssh权限
-> 
->c. ssh连接刷入breed
-> 
->找到路由器背面的SN码
-> 
-> -   访问`https://miwifi.dev/ssh`，输入SN码（整个SN码包括“/”前后的所有内容）可获取root密码
-> -   打开Xterminal，新建服务器，22端口，账户为root，密码为刚刚获取的密码
-> -   将``breed-mt7621-xiaomi-r3g.bin``文件上传到根目录下的tmp文件夹（注意是根目录下的，不是tmp文件夹下的tmp文件夹）
-> -    推荐使用WINSCP软件
-> - 打开终端执行 
-> 
->```BASH
+> - 如果你更改过网关地址，按1输入正确的网关地址，再进行上面相同的操作
+>
+>   > [!TIP]
+>   >
+>   > 不出意外的话，脚本的输出结果最后应当显示 `SSH server are activated` ，表明ssh服务已正常开启。
+>
+> c. ssh连接刷入breed
+>
+> -   打开Xterminal，新建服务器，IP为192.168.31.1，22端口，账户为root，密码为root
+> -   打开WINSCP，新建站点，选择SCP协议，主机为192.168.31.1，22端口，密码和用户名均为root
+> -   将``breed-mt7621-xiaomi-r3g.bin``文件上传到根目录下的tmp文件夹（/tmp）（注意是根目录下的，不是tmp文件夹下的tmp文件夹）
+> -   打开Xterminal ssh命令执行 
+>
+> ```BASH
 > mtd -r write /tmp/breed-mt7621-xiaomi-r3g.bin Bootloader
 > ```
-> 
->- 等待5分钟，成功刷入breed
+>
+> - 不出意外的话，你的路由器会在60秒内重启，system指示灯变为黄色，最终变蓝成功进入系统，代表刷入breed成功
 > - 接下来，将路由器断电，按住reset，接通电源，等待10秒，路由器蓝色灯光闪烁，代表进入breed，用网线将路由器和电脑连接，浏览器地址栏输入`192.168.1.1`进入breed控制台
 
 ------
@@ -124,11 +133,11 @@
 >
 >   提示输入密码 默认密码为 `password` （输入密码过程中看不到密码，请输入后按回车即可），即可进入控制台
 >
->>[!TIP]
+> >[!TIP]
 > >
-> > 警告：DE版本的固件无法自动开启WiFi，第一次刷入固件开机后，有线连接电脑，进入`192.168.1.1`，路由器后台，密码为 `password`
+> >警告：DE版本的固件无法自动开启WiFi，第一次刷入固件开机后，有线连接电脑，进入`192.168.1.1`，路由器后台，密码为 `password`
 > >
-> > 在 系统->启动项->本地启动脚本，在`exit0`前加入如下语句 `/sbin/mtkwifi up` 保存应用重启路由器即可
+> >在 系统->启动项->本地启动脚本，在`exit0`前加入如下语句 `/sbin/mtkwifi up` 保存应用重启路由器即可
 >
 > 
 
@@ -181,38 +190,38 @@
 >    安装完后到网络→负载均衡界面，把接口、成员、策略、规则里面的配置全部删掉
 >    在接口里面新增vwan1，名字要和在网络→接口添加的接口名相同，否则无法匹配接口
 >    勾选启用，填入跟踪的IP，接口会ping这个IP检查自己是否在线。其他配置保持默认就行
->    
->    
->    
+>
+> 
+>
 >    添加两个接口，如下图
 >
 > ![image-20240912114201960](picture/Image_1726158207747.png)
 
 >    注意，跃点数是不是数值，显示“-”是接口的跃点数没指定，回到网络→接口重新指定，或者填的接口名称不对应，还有不同接口间的跃点数是否不同, 路由优先发往跃点值较小的接口。跃点值相同的接口，按权重走路由。如果你用的是同一个号，网速相同，推荐相同跃点数，权重1:1，其他请自行确定
 >
-> 
+>    
 
 >    如下图添加三个策略，注意分配的成员这一项
 >
-> ![image-20240912114701912](picture/Image_1726158205332.png)
+>    ![image-20240912114701912](picture/Image_1726158205332.png)
 
 > 按照下图添加规则，注意，`loginnet` 的目标地址为校园网的登录地址
 >
 > ![ssd](picture/Image_1726158203869.png)
 >
->   登陆之后检查所有接口是否都在线，状态→负载均衡，此时将连接的那一个接口断开，在接口中连接未在线的接口
+> 登陆之后检查所有接口是否都在线，状态→负载均衡，此时将连接的那一个接口断开，在接口中连接未在线的接口
 >
->   可以使用如下命令
+> 可以使用如下命令
 >
 > ```bash
 > ifdown vwan0 #断开VWAN2  不要复制代码，请确认自己哪个接口连接了，哪个没连接
 > ifup vwan1 #连接VWAN1
 > ```
 >
->   连接口换一台设备登录校园网（如果是限制一台手机就换电脑，限制几台设备登录换另一台设备，保证另一个端口不会被挤下线）
-> 
+> 连接口换一台设备登录校园网（如果是限制一台手机就换电脑，限制几台设备登录换另一台设备，保证另一个端口不会被挤下线）
+>
 > > **注意：却换登录时要更改loginnet的策略并断开已连接的虚拟网卡**
->   重新连接两个端口，测速发现，此时网速已经翻倍
+> > 重新连接两个端口，测速发现，此时网速已经翻倍
 
 ------
 
@@ -246,9 +255,9 @@
 
 2. 我的校园网有时候会断连，怎么重新连接？
 
-​      定时ping两个外网地址，连续N次无法ping通，则重启网卡
+      定时ping两个外网地址，连续N次无法ping通，则重启网卡
 
-​    ping 脚本位置` /root/ping/ping.sh` 
+    ping 脚本位置` /root/ping/ping.sh` 
 
    代码如下
 
@@ -333,11 +342,16 @@ done
 
 	不同学校校园网登录检测方式不同，建议在GitHub上寻找自己学校的登录脚本
 
-	> 资源打包地址:  链接：https://pan.baidu.com/s/1oEnotgfo2XKaQi_m7eJa2A?pwd=eh68 
-	> 提取码：eh68
+	> 资源打包地址:  链接：https://www.123684.com/s/TGUnjv-06mW3?pwd=rffO 
 	>
-	> 密码：password@kikyo
+	> 提取码：rffO
+	>
+	> 密码：kikyo
 	
-	**笔者水平有限，如有错误还望指正,技术交流欢迎添加好友**
-
-​	
+	> 如遇下载问题可邮箱联系。
+	>
+	> 
+	>
+	> **笔者水平有限，如有错误还望指正,技术交流欢迎联系。（未加主题会被过滤）**
+	
+	
